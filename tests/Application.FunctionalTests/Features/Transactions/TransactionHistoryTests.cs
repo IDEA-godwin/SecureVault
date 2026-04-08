@@ -284,7 +284,8 @@ public class TransactionHistoryTests : TestBase
         });
 
         // Assert
-        result.Items.Count.ShouldBe(5);
+        // Note: Result includes 1 credit transaction from setup + 5 transfers = 6 total
+        result.Items.Count.ShouldBe(6);
 
         // Verify transactions are ordered by date descending (most recent first)
         for (int i = 1; i < result.Items.Count; i++)
@@ -319,8 +320,9 @@ public class TransactionHistoryTests : TestBase
         });
 
         // Assert
-        result.Items.Count.ShouldBe(10);
-        result.TotalCount.ShouldBe(10);
+        // Note: Result includes 1 credit transaction from setup + 10 transfers = 11 total
+        result.Items.Count.ShouldBe(11);
+        result.TotalCount.ShouldBe(11);
     }
 
     [Test]
