@@ -25,7 +25,7 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors(static builder => 
+app.UseCors(static builder =>
     builder.AllowAnyMethod()
         .AllowAnyHeader()
         .AllowAnyOrigin());
@@ -35,7 +35,8 @@ app.UseFileServer();
 app.MapOpenApi();
 app.MapScalarApiReference();
 
-app.UseExceptionHandler(options => { });
+app.UseExceptionHandler();
+
 
 // app.MapDefaultEndpoints();
 app.MapEndpoints(typeof(Program).Assembly);

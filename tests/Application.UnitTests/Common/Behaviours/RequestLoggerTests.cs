@@ -1,6 +1,6 @@
 ﻿using SecureVault.Application.Common.Behaviours;
 using SecureVault.Application.Common.Interfaces;
-using SecureVault.Application.TodoItems.Commands.CreateTodoItem;
+using SecureVault.Application.Features.Accounts.Commands;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NUnit.Framework;
@@ -9,37 +9,51 @@ namespace SecureVault.Application.UnitTests.Common.Behaviours;
 
 public class RequestLoggerTests
 {
-    private Mock<ILogger<CreateTodoItemCommand>> _logger = null!;
+    private Mock<ILogger<CreateAccountCommand>> _logger = null!;
     private Mock<IUser> _user = null!;
-    private Mock<IIdentityService> _identityService = null!;
 
     [SetUp]
     public void Setup()
     {
-        _logger = new Mock<ILogger<CreateTodoItemCommand>>();
+        _logger = new Mock<ILogger<CreateAccountCommand>>();
         _user = new Mock<IUser>();
-        _identityService = new Mock<IIdentityService>();
     }
 
     [Test]
-    public async Task ShouldCallGetUserNameAsyncOnceIfAuthenticated()
+    public async Task ShouldLogRequestWithUserIdIfAuthenticated()
     {
         _user.Setup(x => x.Id).Returns(Guid.NewGuid().ToString());
 
-        var requestLogger = new LoggingBehaviour<CreateTodoItemCommand>(_logger.Object, _user.Object, _identityService.Object);
+        var requestLogger = new LoggingBehaviour<CreateAccountCommand>(_logger.Object, _user.Object);
 
-        await requestLogger.Process(new CreateTodoItemCommand { ListId = 1, Title = "title" }, new CancellationToken());
+        await requestLogger.Process(new CreateAccountCommand { Name = "Test User", Email = "test@example.com" }, new CancellationToken());
 
-        _identityService.Verify(i => i.GetUserNameAsync(It.IsAny<string>()), Times.Once);
+        // Verify that logging was called
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
     }
 
     [Test]
-    public async Task ShouldNotCallGetUserNameAsyncOnceIfUnauthenticated()
+    public async Task ShouldLogRequestWithoutUserIdIfUnauthenticated()
     {
-        var requestLogger = new LoggingBehaviour<CreateTodoItemCommand>(_logger.Object, _user.Object, _identityService.Object);
+        var requestLogger = new LoggingBehaviour<CreateAccountCommand>(_logger.Object, _user.Object);
 
-        await requestLogger.Process(new CreateTodoItemCommand { ListId = 1, Title = "title" }, new CancellationToken());
+        await requestLogger.Process(new CreateAccountCommand { Name = "Test User", Email = "test@example.com" }, new CancellationToken());
 
-        _identityService.Verify(i => i.GetUserNameAsync(It.IsAny<string>()), Times.Never);
+        // Verify that logging was called
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()),
+            Times.Once);
     }
 }

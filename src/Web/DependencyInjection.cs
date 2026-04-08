@@ -16,6 +16,7 @@ public static class DependencyInjection
 
         builder.Services.AddHttpContextAccessor();
 
+        builder.Services.AddProblemDetails();
         builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 
         // Customise default API behaviour
@@ -27,7 +28,6 @@ public static class DependencyInjection
         builder.Services.AddOpenApi(options =>
         {
             options.AddOperationTransformer<ApiExceptionOperationTransformer>();
-            options.AddOperationTransformer<IdentityApiOperationTransformer>();
             options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
         });
 

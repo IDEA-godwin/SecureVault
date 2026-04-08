@@ -1,4 +1,5 @@
-﻿using SecureVault.Application.Common.Models;
+﻿using SecureVault.Application.Common.DTOs;
+using SecureVault.Application.Common.Models;
 
 namespace SecureVault.Application.Common.Interfaces;
 

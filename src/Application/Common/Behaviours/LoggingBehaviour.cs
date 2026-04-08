@@ -9,27 +9,21 @@ public class LoggingBehaviour<TRequest> : IRequestPreProcessor<TRequest>
 {
     private readonly ILogger _logger;
     private readonly IUser _user;
-    private readonly IIdentityService _identityService;
 
-    public LoggingBehaviour(ILogger<TRequest> logger, IUser user, IIdentityService identityService)
+    public LoggingBehaviour(ILogger<TRequest> logger, IUser user)
     {
         _logger = logger;
         _user = user;
-        _identityService = identityService;
     }
 
     public async Task Process(TRequest request, CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
         var userId = _user.Id ?? string.Empty;
-        string? userName = string.Empty;
 
-        if (!string.IsNullOrEmpty(userId))
-        {
-            userName = await _identityService.GetUserNameAsync(userId);
-        }
+        _logger.LogInformation("SecureVault Request: {Name} {@UserId} {@Request}",
+            requestName, userId, request);
 
-        _logger.LogInformation("SecureVault Request: {Name} {@UserId} {@UserName} {@Request}",
-            requestName, userId, userName, request);
+        await Task.CompletedTask;
     }
 }

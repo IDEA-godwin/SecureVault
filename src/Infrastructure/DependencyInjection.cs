@@ -1,8 +1,7 @@
 ﻿using SecureVault.Application.Common.Interfaces;
 using SecureVault.Infrastructure.Data;
 using SecureVault.Infrastructure.Data.Interceptors;
-using SecureVault.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
+using SecureVault.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -23,27 +22,24 @@ public static class DependencyInjection
         builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseSqlite(connectionString);
+            options.UseSqlServer(connectionString);
             options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
-
 
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
         builder.Services.AddScoped<ApplicationDbContextInitialiser>();
 
-        builder.Services.AddAuthentication()
-            .AddBearerToken(IdentityConstants.BearerScheme);
-
+        // Add authentication and authorization services
+        // These are needed for the BearerSecuritySchemeTransformer in OpenAPI
+        builder.Services.AddAuthentication();
         builder.Services.AddAuthorizationBuilder();
 
-        builder.Services
-            .AddIdentityCore<ApplicationUser>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddApiEndpoints();
-
         builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddTransient<IIdentityService, IdentityService>();
+        builder.Services.AddSingleton<IAccountNumberGenerator, AccountNumberGenerator>();
+        builder.Services.AddScoped<IAccountService, AccountService>();
+
+        // Register background services
+        builder.Services.AddHostedService<AuditLoggingBackgroundService>();
     }
 }

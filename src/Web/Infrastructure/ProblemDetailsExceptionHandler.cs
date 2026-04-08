@@ -1,6 +1,9 @@
+using SecureVault.Application.Common;
 using SecureVault.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+
+using AppNotFoundException = SecureVault.Application.Common.Exceptions.NotFoundException;
 
 namespace SecureVault.Web.Infrastructure;
 
@@ -16,29 +19,43 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
     {
         var (statusCode, problemDetails) = exception switch
         {
-            ValidationException ve => (StatusCodes.Status400BadRequest, (ProblemDetails)new ValidationProblemDetails(ve.Errors)
+            ValidationException ve => (StatusCodes.Status400BadRequest, new ValidationProblemDetails(ve.Errors)
             {
                 Status = StatusCodes.Status400BadRequest,
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
             }),
-            NotFoundException ne => (StatusCodes.Status404NotFound, new ProblemDetails
+            AppNotFoundException ne => (StatusCodes.Status404NotFound, new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
-                Title = "The specified resource was not found.",
+                Title = ExtractErrorCode(ne.Message) ?? "The specified resource was not found.",
                 Detail = ne.Message
+            }),
+            ArgumentNullException ane => (StatusCodes.Status404NotFound, new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = ExtractErrorCode(ane.Message) ?? "The specified resource was not found.",
+                Detail = ane.Message ?? "The requested entity was not found."
+            }),
+            ArgumentException ae => (StatusCodes.Status400BadRequest, new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = ExtractErrorCode(ae.Message) ?? ErrorCodes.OperationFailed,
+                Detail = ae.Message
+            }),
+            InvalidOperationException ioe => (StatusCodes.Status400BadRequest, new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = ExtractErrorCode(ioe.Message) ?? ErrorCodes.OperationFailed,
+                Detail = ioe.Message
             }),
             UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, new ProblemDetails
             {
                 Status = StatusCodes.Status401Unauthorized,
                 Title = "Unauthorized",
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
             }),
             ForbiddenAccessException => (StatusCodes.Status403Forbidden, new ProblemDetails
             {
                 Status = StatusCodes.Status403Forbidden,
                 Title = "Forbidden",
-                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.4"
             }),
             _ => (-1, null)
         };
@@ -48,5 +65,22 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
         return true;
+    }
+
+    private static string? ExtractErrorCode(string? message)
+    {
+        if (string.IsNullOrEmpty(message)) return null;
+
+        if (message.StartsWith("[") && message.Contains("]"))
+        {
+            var endBracket = message.IndexOf("]");
+            var code = message.Substring(1, endBracket - 1);
+            if (!string.IsNullOrWhiteSpace(code))
+            {
+                return code;
+            }
+        }
+
+        return null;
     }
 }

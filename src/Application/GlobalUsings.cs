@@ -4,3 +4,6 @@ global using AutoMapper.QueryableExtensions;
 global using Microsoft.EntityFrameworkCore;
 global using FluentValidation;
 global using MediatR;
+global using SecureVault.Application.Common.DTOs;
+global using SecureVault.Application.Common.Interfaces;
+global using SecureVault.Domain.Entities;
