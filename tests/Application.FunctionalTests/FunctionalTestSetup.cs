@@ -9,36 +9,13 @@ public class FunctionalTestSetup
     internal static DatabaseResetter? DbResetter { get; private set; }
 
     private static WebApiFactory? _factory;
-    private static DistributedApplication? _app;
 
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        var cancellationToken = cts.Token;
-
-        var builder = await DistributedApplicationTestingBuilder
-            .CreateAsync<Projects.TestAppHost>(
-                args: [],
-                configureBuilder: (options, _) =>
-                {
-                    options.DisableDashboard = true;
-                });
-
-        builder.Configuration["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
-
-        _app = await builder
-            .BuildAsync(cancellationToken)
-            .WaitAsync(cancellationToken);
-
-        await _app
-            .StartAsync(cancellationToken)
-            .WaitAsync(cancellationToken);
-
-        await _app.ResourceNotifications.WaitForResourceHealthyAsync(
-            Services.Database, cancellationToken);
-
-        var connectionString = (await _app.GetConnectionStringAsync(Services.Database))!;
+        // Connection string for SQL Server running in Docker on Linux
+        // For local development, you can run: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourPassword123!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+        var connectionString = "Server=localhost,1433;Database=SecureVaultDbTest;User Id=sa;Password=YourPassword123!;Encrypt=false;TrustServerCertificate=true;";
 
         _factory = new WebApiFactory(connectionString);
         ScopeFactory = _factory.Services.GetRequiredService<IServiceScopeFactory>();
@@ -49,7 +26,6 @@ public class FunctionalTestSetup
     public async Task OneTimeTearDown()
     {
         if (DbResetter is not null) await DbResetter.DisposeAsync();
-        if (_app is not null) await _app.DisposeAsync();
         if (_factory is not null) await _factory.DisposeAsync();
     }
 }
